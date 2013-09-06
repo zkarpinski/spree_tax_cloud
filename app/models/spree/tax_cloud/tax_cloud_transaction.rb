@@ -21,7 +21,6 @@ module Spree
 
         taxable = ( cart_price + order.promotions_total )
         tax = round_to_two_places( taxable * tax_rate) 
-        logger.info "\n\n*** Updating adjustment #{taxable} #{tax}"
 
         adjustment.update_attribute_without_callbacks(:amount, tax)
       else
@@ -100,7 +99,7 @@ module Spree
 
         shiptotal = order.promotion_shipping.to_f
 
-        if shiptotal > 0.0
+        if shiptotal and shiptotal > 0.0
           cart_items.create!({  
           :index => (index += 1),
           :tic =>  Spree::Config.taxcloud_shipping_tic,  
