@@ -4,8 +4,6 @@ Spree::Order.class_eval do
 
   has_one :tax_cloud_transaction
 
-  after_save :update_tax_cloud_adjustment
-
   self.state_machine.after_transition :to => :payment,
      :do => :lookup_tax_cloud,
      :if => :tax_cloud_eligible?
