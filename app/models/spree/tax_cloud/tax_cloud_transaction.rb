@@ -35,13 +35,13 @@ module Spree
 
         raise 'Tax Cloud Lookup Error' unless response.success?
         transaction do
+          logger.info "\n\n *** #{response.inspect}"
 
           unless response.body[:lookup_response][:lookup_result][:messages].nil?
             self.message = response.body[:lookup_response][:lookup_result][:messages][:response_message][:message]
           end
-
-          unless response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response].nil?
-            response_cart_items = Array.wrap response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response]
+          
+          if response and response.body and response.body[:lookup_response] and response.body[:lookup_response][:lookup_result] 
 
             response_cart_items.each do |response_cart_item|
               cart_item = cart_items.find_by_index(response_cart_item[:cart_item_index].to_i)
@@ -56,8 +56,6 @@ module Spree
             end
 
             self.save
-          else
-            Rails.logger.error "*** Tax cloud returned this: #{response.inspect}"
           end
         end
       end

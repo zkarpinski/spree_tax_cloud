@@ -13,7 +13,7 @@ Spree::Order.class_eval do
      :if => :tax_cloud_eligible?
 
   def tax_cloud_eligible?
-     ship_address.try(:state_id?)
+     ship_address.try(:state_id?) and ship_address.try(:country_id) and ship_address.country.iso3 == "USA"
   end
 
   def update_tax_cloud_adjustment
