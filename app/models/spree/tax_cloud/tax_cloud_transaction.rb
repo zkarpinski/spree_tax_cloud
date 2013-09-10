@@ -35,25 +35,30 @@ module Spree
 
         raise 'Tax Cloud Lookup Error' unless response.success?
         transaction do
+
           unless response.body[:lookup_response][:lookup_result][:messages].nil?
             self.message = response.body[:lookup_response][:lookup_result][:messages][:response_message][:message]
           end
 
-          response_cart_items = Array.wrap response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response]
+          unless response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response].nil?
+            response_cart_items = Array.wrap response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response]
 
-          response_cart_items.each do |response_cart_item|
-            cart_item = cart_items.find_by_index(response_cart_item[:cart_item_index].to_i)
-            cart_item.update_attribute(:amount, response_cart_item[:tax_amount].to_f)
-            
-            calculated_rate = "#{response_cart_item[:tax_amount].to_f / (cart_item.price.to_f * cart_item.quantity.to_f)}"
-            calculated_rate = BigDecimal.new(calculated_rate).round(3, BigDecimal::ROUND_HALF_UP)
+            response_cart_items.each do |response_cart_item|
+              cart_item = cart_items.find_by_index(response_cart_item[:cart_item_index].to_i)
+              cart_item.update_attribute(:amount, response_cart_item[:tax_amount].to_f)
+              
+              calculated_rate = "#{response_cart_item[:tax_amount].to_f / (cart_item.price.to_f * cart_item.quantity.to_f)}"
+              calculated_rate = BigDecimal.new(calculated_rate).round(3, BigDecimal::ROUND_HALF_UP)
 
-            unless tax_rate == calculated_rate
-              self.tax_rate = calculated_rate
+              unless tax_rate == calculated_rate
+                self.tax_rate = calculated_rate
+              end
             end
-          end
 
-          self.save
+            self.save
+          else
+            Rails.logger.error "*** Tax cloud returned this: #{response.inspect}"
+          end
         end
       end
     end
