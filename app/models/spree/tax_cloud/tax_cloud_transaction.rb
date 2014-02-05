@@ -31,36 +31,41 @@ module Spree
     def lookup
       begin
         create_cart_items
-        response = tax_cloud.lookup(self)
 
-        raise 'Tax Cloud Lookup Error' unless response.success?
-        transaction do
-          logger.info "\n\n *** #{response.inspect}"
+        if amount.to_f > 0.0
+          response = tax_cloud.lookup(self)
 
-          unless response.body[:lookup_response][:lookup_result][:messages].nil?
-            self.message = response.body[:lookup_response][:lookup_result][:messages][:response_message][:message]
-          end
-          
-          if response and response.body and response.body[:lookup_response] and 
-            response.body[:lookup_response][:lookup_result] and response.body[:lookup_response][:lookup_result][:cart_items_response] and
-            response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response]
+          raise 'Tax Cloud Lookup Error' unless response.success?
+          transaction do
+            logger.info "\n\n *** #{response.inspect}"
+
+            unless response.body[:lookup_response][:lookup_result][:messages].nil?
+              self.message = response.body[:lookup_response][:lookup_result][:messages][:response_message][:message]
+            end
             
-            response_cart_items = Array.wrap(response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response])
-
-            response_cart_items.each do |response_cart_item|
-              cart_item = cart_items.find_by_index(response_cart_item[:cart_item_index].to_i)
-              cart_item.update_attribute(:amount, response_cart_item[:tax_amount].to_f)
+            if response and response.body and response.body[:lookup_response] and 
+              response.body[:lookup_response][:lookup_result] and response.body[:lookup_response][:lookup_result][:cart_items_response] and
+              response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response]
               
-              if  (cart_item.price.to_f * cart_item.quantity.to_f) > 0.0
-                calculated_rate = "#{response_cart_item[:tax_amount].to_f / (cart_item.price.to_f * cart_item.quantity.to_f)}"
-                calculated_rate = BigDecimal.new(calculated_rate).round(3, BigDecimal::ROUND_HALF_UP)
-              else
-                calculated_rate = 0.0
-              end
+              response_cart_items = Array.wrap(response.body[:lookup_response][:lookup_result][:cart_items_response][:cart_item_response])
 
-              unless tax_rate == calculated_rate
-                self.tax_rate = calculated_rate
+              response_cart_items.each do |response_cart_item|
+                cart_item = cart_items.find_by_index(response_cart_item[:cart_item_index].to_i)
+                cart_item.update_attribute(:amount, response_cart_item[:tax_amount].to_f)
+                
+                if cart_item.price.to_f > 0.0
+                  calculated_rate = "#{response_cart_item[:tax_amount].to_f / (cart_item.price.to_f * cart_item.quantity.to_f)}"
+                  calculated_rate = BigDecimal.new(calculated_rate).round(3, BigDecimal::ROUND_HALF_UP)
+                else
+                  calculated_rate = 0.0
+                end
+
+                unless tax_rate == calculated_rate
+                  self.tax_rate = calculated_rate
+                end
               end
+            else
+              self.tax_rate = 0.0
             end
 
             self.save
