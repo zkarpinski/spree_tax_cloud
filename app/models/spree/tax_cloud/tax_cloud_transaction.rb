@@ -51,8 +51,12 @@ module Spree
               cart_item = cart_items.find_by_index(response_cart_item[:cart_item_index].to_i)
               cart_item.update_attribute(:amount, response_cart_item[:tax_amount].to_f)
               
-              calculated_rate = "#{response_cart_item[:tax_amount].to_f / (cart_item.price.to_f * cart_item.quantity.to_f)}"
-              calculated_rate = BigDecimal.new(calculated_rate).round(3, BigDecimal::ROUND_HALF_UP)
+              if  (cart_item.price.to_f * cart_item.quantity.to_f) > 0.0
+                calculated_rate = "#{response_cart_item[:tax_amount].to_f / (cart_item.price.to_f * cart_item.quantity.to_f)}"
+                calculated_rate = BigDecimal.new(calculated_rate).round(3, BigDecimal::ROUND_HALF_UP)
+              else
+                calculated_rate = 0.0
+              end
 
               unless tax_rate == calculated_rate
                 self.tax_rate = calculated_rate
