@@ -83,9 +83,7 @@ Spree::Order.class_eval do
     ship_promo = 0.0
 
     adjustments.where("originator_type = ? and label like ? and eligible = ?", "Spree::PromotionAction", "%Free Shipping%", true).all.each do |a|
-      if a and a.amount.to_f > 0.0
-        ship_promo += a.amount.to_f
-      end
+      ship_promo += a.amount.to_f
     end
 
     if ship_promo > 0.0
