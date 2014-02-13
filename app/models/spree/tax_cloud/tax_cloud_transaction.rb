@@ -11,7 +11,7 @@ module Spree
     belongs_to :order
     validates :order, :presence => true
     has_one :adjustment, :as => :originator
-    has_many :cart_items, :class_name => 'TaxCloudCartItem', :dependent => :destroy
+    has_many :cart_items, :class_name => 'Spree::TaxCloudCartItem', :dependent => :destroy
 
     # called when order updates adjustments
     # This version will tax shipping, which is in cart_price
@@ -102,27 +102,34 @@ module Spree
       def create_cart_items
         cart_items.clear
         index = 0
+        total_quantity = 0
+
         order.line_items.each do |line_item|
-          cart_items.create!({
-          :index => (index += 1),
-          :tic => Spree::Config.taxcloud_product_tic , 
-          :sku => line_item.variant.sku.presence || line_item.variant.id,
-          :quantity => line_item.quantity,
-          :price => line_item.price.to_f,
-          :line_item => line_item
-          })
+          if line_item.quantity > 0
+            cart_items.create!({
+            :index => (index += 1),
+            :tic => Spree::Config.taxcloud_product_tic , 
+            :sku => line_item.variant.sku.presence || line_item.variant.id,
+            :quantity => line_item.quantity,
+            :price => line_item.price.to_f,
+            :line_item => line_item
+            })
+            total_quantity += 1
+          end
         end
 
-        shiptotal = order.promotion_shipping.to_f
+        if total_quantity > 0
+          shiptotal = order.promotion_shipping.to_f
 
-        if shiptotal and shiptotal > 0.0
-          cart_items.create!({  
-          :index => (index += 1),
-          :tic =>  Spree::Config.taxcloud_shipping_tic,  
-          :sku => 'SHIPPING',
-          :quantity => 1,
-          :price =>  shiptotal
-          })
+          if shiptotal and shiptotal > 0.0
+            cart_items.create!({  
+            :index => (index += 1),
+            :tic =>  Spree::Config.taxcloud_shipping_tic,  
+            :sku => 'SHIPPING',
+            :quantity => 1,
+            :price =>  shiptotal
+            })
+          end
         end
       end
   end

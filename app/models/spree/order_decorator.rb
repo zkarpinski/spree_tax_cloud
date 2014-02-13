@@ -99,6 +99,18 @@ Spree::Order.class_eval do
     return  new_ship_total
   end
 
+  def ship_total
+    ship_sum = 0.0
+
+    adjustments.shipping.each do |a|
+      if a and a.amount.to_f > 0.0
+        ship_sum += a.amount.to_f
+      end
+    end
+
+    ship_sum
+  end
+
    # alias_method :update_without_taxcloud_lookup, :update! 
    # alias_method :update!, :update_with_taxcloudlookup 
 end
